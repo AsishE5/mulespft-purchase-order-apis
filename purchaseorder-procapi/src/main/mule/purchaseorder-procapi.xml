@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+
+	<flow name="post:\process:application\json:purchaseorder-procapi-config" doc:id="a1b2c3d4-e5f6-7g8h-9i0j-k1l2m3n4o5p6">
+		<http:listener doc:name="POST /process" doc:id="2a3b4c5d-6e7f-8g9h-0i1j-2k3l4m5n6o7p" config-ref="HTTP_Listener_config" path="/api/v1/process" allowedMethods="POST"/>
+		<logger level="INFO" doc:name="Log Request" doc:id="3b4c5d6e-7f8g-9h0i-1j2k-3l4m5n6o7p8q" message="Processing order from source: #[payload.source] to target: #[payload.target], orderId: #[payload.orderId]"/>
+		
+		<set-variable variableName="transactionId" value="#[uuid()]" doc:name="Generate Transaction ID" doc:id="4c5d6e7f-8g9h-0i1j-2k3l-4m5n6o7p8q9r"/>
+		<set-variable variableName="sourceOrderId" value="#[payload.orderId]" doc:name="Store Source Order ID" doc:id="5d6e7f8g-9h0i-1j2k-3l4m-5n6o7p8q9r0s"/>
+		<set-variable variableName="sourceSystem" value="#[payload.source]" doc:name="Store Source System" doc:id="6e7f8g9h-0i1j-2k3l-4m5n-6o7p8q9r0s1t"/>
+		<set-variable variableName="targetSystem" value="#[payload.target]" doc:name="Store Target System" doc:id="7f8g9h0i-1j2k-3l4m-5n6o-7p8q9r0s1t2u"/>
+		
+		<!-- Validation Logic -->
+		<choice doc:name="Validate Request" doc:id="8g9h0i1j-2k3l-4m5n-6o7p-8q9r0s1t2u3v">
+			<when expression="#[payload.source == null or payload.target == null or payload.orderId == null or payload.orderData == null]">
+				<logger level="ERROR" doc:name="Log Validation Error" doc:id="9h0i1j2k-3l4m-5n6o-7p8q-9r0s1t2u3v4w" message="Validation failed: Missing required fields"/>
+				<ee:transform doc:name="Validation Error Response" doc:id="0i1j2k3l-4m5n-6o7p-8q9r-0s1t2u3v4w5x">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "errorCode": "PROC_001",
+  "errorMessage": "Validation failed: Missing required fields (source, target, orderId, orderData)",
+  "timestamp": now()
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus">400</ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<error-handler>
+					<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="1j2k3l4m-5n6o-7p8q-9r0s-1t2u3v4w5x6y" type="ANY"/>
+				</error-handler>
+			</when>
+			<otherwise>
+				<!-- Route to appropriate transformation based on source-target combination -->
+				<choice doc:name="Route by Source-Target" doc:id="2k3l4m5n-6o7p-8q9r-0s1t-2u3v4w5x6y7z">
+					<when expression="#[upper(payload.source) == 'FLIPKART' and upper(payload.target) == 'IBM']">
+						<flow-ref doc:name="Transform Flipkart to IBM" doc:id="3l4m5n6o-7p8q-9r0s-1t2u-3v4w5x6y7z8a" name="transformFlipkartToIBM"/>
+					</when>
+					<when expression="#[upper(payload.source) == 'AMAZON' and upper(payload.target) == 'HP']">
+						<flow-ref doc:name="Transform Amazon to HP" doc:id="4m5n6o7p-8q9r-0s1t-2u3v-4w5x6y7z8a9b" name="transformAmazonToHP"/>
+					</when>
+					<otherwise>
+						<logger level="ERROR" doc:name="Log Unsupported Combination" doc:id="5n6o7p8q-9r0s-1t2u-3v4w-5x6y7z8a9b0c" message="Unsupported source-target combination: #[payload.source] to #[payload.target]"/>
+						<ee:transform doc:name="Unsupported Combination Error" doc:id="6o7p8q9r-0s1t-2u3v-4w5x-6y7z8a9b0c1d">
+							<ee:message>
+								<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "errorCode": "PROC_002",
+  "errorMessage": "Unsupported source-target combination: " ++ payload.source ++ " to " ++ payload.target,
+  "timestamp": now()
+}]]></ee:set-payload>
+							</ee:message>
+							<ee:variables>
+								<ee:set-variable variableName="httpStatus">422</ee:set-variable>
+							</ee:variables>
+						</ee:transform>
+					</otherwise>
+				</choice>
+			</otherwise>
+		</choice>
+		
+		<error-handler>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="7p8q9r0s-1t2u-3v4w-5x6y-7z8a9b0c1d2e" type="ANY">
+				<logger level="ERROR" doc:name="Error Logger" doc:id="8q9r0s1t-2u3v-4w5x-6y7z-8a9b0c1d2e3f" message="Error in process flow: #[error.description]"/>
+				<ee:transform doc:name="Error Response" doc:id="9r0s1t2u-3v4w-5x6y-7z8a-9b0c1d2e3f4g">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "errorCode": "PROC_001",
+  "errorMessage": error.description,
+  "timestamp": now()
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus">500</ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+
+	<sub-flow name="transformFlipkartToIBM" doc:id="0s1t2u3v-4w5x-6y7z-8a9b-0c1d2e3f4g5h">
+		<logger level="INFO" doc:name="Log Flipkart to IBM Transform" doc:id="1t2u3v4w-5x6y-7z8a-9b0c-1d2e3f4g5h6i" message="Transforming Flipkart order to IBM format"/>
+		<ee:transform doc:name="Flipkart to IBM Transformation" doc:id="2u3v4w5x-6y7z-8a9b-0c1d-2e3f4g5h6i7j">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  ibm_order_id: "IBM_" ++ payload.orderData.orderId,
+  client_details: {
+    client_id: payload.orderData.customerInfo.customerId,
+    client_name: payload.orderData.customerInfo.customerName,
+    contact_email: payload.orderData.customerInfo.email,
+    contact_phone: payload.orderData.customerInfo.phone
+  },
+  order_summary: {
+    created_date: payload.orderData.orderDetails.orderDate,
+    total_value: payload.orderData.orderDetails.totalAmount,
+    currency_type: payload.orderData.orderDetails.currency,
+    processing_status: if (payload.orderData.orderDetails.status == "CONFIRMED") "NEW" 
+                      else if (payload.orderData.orderDetails.status == "PENDING") "NEW"
+                      else if (payload.orderData.orderDetails.status == "SHIPPED") "IN_PROGRESS"
+                      else if (payload.orderData.orderDetails.status == "DELIVERED") "COMPLETED"
+                      else if (payload.orderData.orderDetails.status == "CANCELLED") "CANCELLED"
+                      else "NEW"
+  },
+  line_items: payload.orderData.items map (item, index) -> {
+    line_id: "LINE_" ++ (index + 1 as String) formatted "000",
+    product_code: item.itemId,
+    product_description: item.productName,
+    order_quantity: item.quantity,
+    unit_cost: item.unitPrice,
+    item_category: item.category
+  },
+  delivery_info: {
+    address_line_1: payload.orderData.shippingAddress.addressLine1,
+    address_line_2: payload.orderData.shippingAddress.addressLine2,
+    city_name: payload.orderData.shippingAddress.city,
+    state_province: payload.orderData.shippingAddress.state,
+    postal_code: payload.orderData.shippingAddress.postalCode,
+    country_name: payload.orderData.shippingAddress.country
+  }
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="Generate Success Response" doc:id="3v4w5x6y-7z8a-9b0c-1d2e-3f4g5h6i7j8k" name="generateSuccessResponse"/>
+	</sub-flow>
+
+	<sub-flow name="transformAmazonToHP" doc:id="4w5x6y7z-8a9b-0c1d-2e3f-4g5h6i7j8k9l">
+		<logger level="INFO" doc:name="Log Amazon to HP Transform" doc:id="5x6y7z8a-9b0c-1d2e-3f4g-5h6i7j8k9l0m" message="Transforming Amazon order to HP format"/>
+		<ee:transform doc:name="Amazon to HP Transformation" doc:id="6y7z8a9b-0c1d-2e3f-4g5h-6i7j8k9l0m1n">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  hp_reference_number: "HP_" ++ payload.orderData.orderNumber,
+  customer_info: {
+    customer_code: payload.orderData.buyerInfo.buyerId,
+    customer_full_name: payload.orderData.buyerInfo.fullName,
+    email_id: payload.orderData.buyerInfo.emailAddress,
+    phone_number: payload.orderData.buyerInfo.phoneNumber
+  },
+  transaction_details: {
+    transaction_date: payload.orderData.purchaseInfo.purchaseDate,
+    gross_amount: payload.orderData.purchaseInfo.grandTotal,
+    transaction_currency: payload.orderData.purchaseInfo.currencyCode,
+    order_state: if (payload.orderData.purchaseInfo.orderStatus == "PLACED") "RECEIVED"
+                 else if (payload.orderData.purchaseInfo.orderStatus == "PROCESSING") "PROCESSING"
+                 else if (payload.orderData.purchaseInfo.orderStatus == "SHIPPED") "PROCESSING"
+                 else if (payload.orderData.purchaseInfo.orderStatus == "DELIVERED") "FULFILLED"
+                 else if (payload.orderData.purchaseInfo.orderStatus == "RETURNED") "CLOSED"
+                 else if (payload.orderData.purchaseInfo.orderStatus == "CANCELLED") "REJECTED"
+                 else "RECEIVED"
+  },
+  product_lines: payload.orderData.productList map (product, index) -> {
+    line_number: (index + 1 as String) formatted "000",
+    sku_code: product.productId,
+    product_name: product.title,
+    ordered_qty: product.qty,
+    list_price: product.price,
+    product_type: product.productCategory
+  },
+  shipping_details: {
+    ship_to_address1: payload.orderData.deliveryAddress.street,
+    ship_to_address2: payload.orderData.deliveryAddress.apartment,
+    ship_to_city: payload.orderData.deliveryAddress.cityName,
+    ship_to_state: payload.orderData.deliveryAddress.stateCode,
+    ship_to_zip: payload.orderData.deliveryAddress.zipCode,
+    ship_to_country: payload.orderData.deliveryAddress.countryCode
+  }
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="Generate Success Response" doc:id="7z8a9b0c-1d2e-3f4g-5h6i-7j8k9l0m1n2o" name="generateSuccessResponse"/>
+	</sub-flow>
+
+	<sub-flow name="generateSuccessResponse" doc:id="8a9b0c1d-2e3f-4g5h-6i7j-8k9l0m1n2o3p">
+		<set-variable variableName="targetOrderId" value="#[payload.ibm_order_id default payload.hp_reference_number]" doc:name="Extract Target Order ID" doc:id="9b0c1d2e-3f4g-5h6i-7j8k-9l0m1n2o3p4q"/>
+		<ee:transform doc:name="Success Response" doc:id="0c1d2e3f-4g5h-6i7j-8k9l-0m1n2o3p4q5r">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  transactionId: vars.transactionId,
+  status: "SUCCESS",
+  message: "Order processed successfully from " ++ vars.sourceSystem ++ " to " ++ vars.targetSystem,
+  sourceOrderId: vars.sourceOrderId,
+  targetOrderId: vars.targetOrderId,
+  processedAt: now(),
+  transformedData: payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+
+	<flow name="get:\process\(transactionId):purchaseorder-procapi-config" doc:id="1d2e3f4g-5h6i-7j8k-9l0m-1n2o3p4q5r6s">
+		<http:listener doc:name="GET /process/{transactionId}" doc:id="2e3f4g5h-6i7j-8k9l-0m1n-2o3p4q5r6s7t" config-ref="HTTP_Listener_config" path="/api/v1/process/{transactionId}" allowedMethods="GET"/>
+		<logger level="INFO" doc:name="Log Transaction Status Request" doc:id="3f4g5h6i-7j8k-9l0m-1n2o-3p4q5r6s7t8u" message="Retrieving status for transaction ID: #[attributes.uriParams.transactionId]"/>
+		
+		<!-- Mock response for transaction status - In real implementation, this would query a database -->
+		<ee:transform doc:name="Mock Transaction Status" doc:id="4g5h6i7j-8k9l-0m1n-2o3p-4q5r6s7t8u9v">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  transactionId: attributes.uriParams.transactionId,
+  status: "SUCCESS",
+  message: "Transaction completed successfully",
+  sourceOrderId: "MOCK_" ++ attributes.uriParams.transactionId,
+  targetOrderId: "TARGET_" ++ attributes.uriParams.transactionId,
+  processedAt: now() - |PT5M|,
+  lastUpdated: now()
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		
+		<error-handler>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="5h6i7j8k-9l0m-1n2o-3p4q-5r6s7t8u9v0w" type="ANY">
+				<logger level="ERROR" doc:name="Error Logger" doc:id="6i7j8k9l-0m1n-2o3p-4q5r-6s7t8u9v0w1x" message="Error retrieving transaction status: #[error.description]"/>
+				<ee:transform doc:name="Error Response" doc:id="7j8k9l0m-1n2o-3p4q-5r6s-7t8u9v0w1x2y">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "errorCode": "PROC_003",
+  "errorMessage": "Transaction not found: " ++ attributes.uriParams.transactionId,
+  "timestamp": now()
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus">404</ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+
+	<flow name="get:\health:purchaseorder-procapi-config" doc:id="8k9l0m1n-2o3p-4q5r-6s7t-8u9v0w1x2y3z">
+		<http:listener doc:name="GET /health" doc:id="9l0m1n2o-3p4q-5r6s-7t8u-9v0w1x2y3z4a" config-ref="HTTP_Listener_config" path="/api/v1/health" allowedMethods="GET"/>
+		<logger level="INFO" doc:name="Log Health Check" doc:id="0m1n2o3p-4q5r-6s7t-8u9v-0w1x2y3z4a5b" message="Health check endpoint called"/>
+		<ee:transform doc:name="Health Response" doc:id="1n2o3p4q-5r6s-7t8u-9v0w-1x2y3z4a5b6c">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "status": "UP",
+  "timestamp": now(),
+  "service": "Purchase Order Process API",
+  "version": "1.0.0",
+  "supportedTransformations": [
+    "FLIPKART -> IBM",
+    "AMAZON -> HP"
+  ]
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<error-handler>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="2o3p4q5r-6s7t-8u9v-0w1x-2y3z4a5b6c7d" type="ANY">
+				<logger level="ERROR" doc:name="Error Logger" doc:id="3p4q5r6s-7t8u-9v0w-1x2y-3z4a5b6c7d8e" message="Error in health check: #[error.description]"/>
+				<ee:transform doc:name="Error Response" doc:id="4q5r6s7t-8u9v-0w1x-2y3z-4a5b6c7d8e9f">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "status": "DOWN",
+  "errorCode": "PROC_001",
+  "errorMessage": error.description,
+  "timestamp": now()
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus">500</ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+
+</mule>

@@ -1,0 +1,25 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"name": "\\Users\\2432050\\AppData\\Local\\Programs\\Microsoft VS Code\\purchase-order-integration",
+			"uri": "C:\\Users\\2432050\\AppData\\Local\\Programs\\Microsoft VS Code\\purchase-order-integration"
+		},
+		{
+			"name": "purchase-order-integration",
+			"uri": "C:/Users/2432050/AppData/Local/Programs/Microsoft VS Code/purchase-order-integration"
+		}
+	],
+	"settings": {
+		"files.exclude": {
+			"**/.git": true,
+			"**/.svn": true,
+			"**/.hg": true,
+			"**/.DS_Store": true,
+			"**/Thumbs.db": true,
+			".mule": true
+		}
+	}
+}

@@ -1,0 +1,223 @@
+#%RAML 1.0
+title: Amazon Purchase Order System API
+version: v1
+baseUri: http://localhost:8082/api/v1
+
+documentation:
+  - title: Amazon Purchase Order System API
+    content: |
+      This System API connects to Amazon's order service and exposes raw order details.
+      It follows the System API layer pattern in MuleSoft's three-layer architecture.
+
+types:
+  AmazonOrder:
+    type: object
+    properties:
+      orderNumber:
+        type: string
+        required: true
+        example: "AMZ987654321"
+      buyerInfo:
+        type: object
+        properties:
+          buyerId:
+            type: string
+            required: true
+            example: "BUYER001"
+          fullName:
+            type: string
+            required: true
+            example: "Jane Smith"
+          emailAddress:
+            type: string
+            required: true
+            example: "jane.smith@email.com"
+          phoneNumber:
+            type: string
+            required: true
+            example: "+1-555-123-4567"
+      purchaseInfo:
+        type: object
+        properties:
+          purchaseDate:
+            type: datetime
+            required: true
+            example: "2024-01-15T14:45:00Z"
+          grandTotal:
+            type: number
+            required: true
+            example: 899.99
+          currencyCode:
+            type: string
+            required: true
+            example: "USD"
+          orderStatus:
+            type: string
+            enum: [PLACED, PROCESSING, SHIPPED, DELIVERED, RETURNED, CANCELLED]
+            required: true
+            example: "PROCESSING"
+      productList:
+        type: array
+        items:
+          type: object
+          properties:
+            productId:
+              type: string
+              required: true
+              example: "PROD001"
+            title:
+              type: string
+              required: true
+              example: "HP Laptop ProBook 450"
+            qty:
+              type: integer
+              required: true
+              example: 2
+            price:
+              type: number
+              required: true
+              example: 449.99
+            productCategory:
+              type: string
+              required: true
+              example: "Computers"
+      deliveryAddress:
+        type: object
+        properties:
+          street:
+            type: string
+            required: true
+            example: "456 Oak Avenue"
+          apartment:
+            type: string
+            required: false
+            example: "Suite 200"
+          cityName:
+            type: string
+            required: true
+            example: "Seattle"
+          stateCode:
+            type: string
+            required: true
+            example: "WA"
+          zipCode:
+            type: string
+            required: true
+            example: "98101"
+          countryCode:
+            type: string
+            required: true
+            example: "US"
+
+  ErrorResponse:
+    type: object
+    properties:
+      errorCode:
+        type: string
+        required: true
+        example: "AMZ_001"
+      errorMessage:
+        type: string
+        required: true
+        example: "Order not found"
+      timestamp:
+        type: datetime
+        required: true
+        example: "2024-01-15T14:45:00Z"
+
+/orders:
+  get:
+    description: Get all orders from Amazon system
+    queryParameters:
+      pageSize:
+        type: integer
+        required: false
+        default: 10
+        example: 25
+      pageNumber:
+        type: integer
+        required: false
+        default: 1
+        example: 1
+      orderStatus:
+        type: string
+        required: false
+        enum: [PLACED, PROCESSING, SHIPPED, DELIVERED, RETURNED, CANCELLED]
+        example: "PROCESSING"
+    responses:
+      200:
+        body:
+          application/json:
+            type: AmazonOrder[]
+            example: |
+              [
+                {
+                  "orderNumber": "AMZ987654321",
+                  "buyerInfo": {
+                    "buyerId": "BUYER001",
+                    "fullName": "Jane Smith",
+                    "emailAddress": "jane.smith@email.com",
+                    "phoneNumber": "+1-555-123-4567"
+                  },
+                  "purchaseInfo": {
+                    "purchaseDate": "2024-01-15T14:45:00Z",
+                    "grandTotal": 899.98,
+                    "currencyCode": "USD",
+                    "orderStatus": "PROCESSING"
+                  },
+                  "productList": [
+                    {
+                      "productId": "PROD001",
+                      "title": "HP Laptop ProBook 450",
+                      "qty": 2,
+                      "price": 449.99,
+                      "productCategory": "Computers"
+                    }
+                  ],
+                  "deliveryAddress": {
+                    "street": "456 Oak Avenue",
+                    "cityName": "Seattle",
+                    "stateCode": "WA",
+                    "zipCode": "98101",
+                    "countryCode": "US"
+                  }
+                }
+              ]
+      400:
+        body:
+          application/json:
+            type: ErrorResponse
+      500:
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{orderNumber}:
+    get:
+      description: Get a specific order by order number from Amazon system
+      responses:
+        200:
+          body:
+            application/json:
+              type: AmazonOrder
+        404:
+          body:
+            application/json:
+              type: ErrorResponse
+        500:
+          body:
+            application/json:
+              type: ErrorResponse
+
+/health:
+  get:
+    description: Health check endpoint
+    responses:
+      200:
+        body:
+          application/json:
+            example: |
+              {
+                "status": "UP",
+                "timestamp": "2024-01-15T14:45:00Z"
+              }

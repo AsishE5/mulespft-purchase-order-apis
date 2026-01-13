@@ -1,0 +1,538 @@
+{
+	"info": {
+		"_postman_id": "purchase-order-apis-collection",
+		"name": "Purchase Order Integration APIs",
+		"description": "Complete collection for testing MuleSoft Purchase Order Integration APIs\n\n## Architecture\n- **System APIs**: Flipkart System API (port 8081), Amazon System API (port 8082)\n- **Process API**: Purchase Order Process API (port 8083) - Reusable orchestration layer\n- **Experience API**: Purchase Order Experience API (port 8084) - Simplified interface for Flipkart to IBM\n\n## Use Cases\n1. **Flipkart → IBM**: Three-layer architecture (System → Process → Experience)\n2. **Amazon → HP**: Two-layer architecture (System → Process)\n\n## Test Order\n1. Test System APIs individually\n2. Test Process API transformations\n3. Test Experience API (Flipkart to IBM only)\n4. Verify end-to-end integration flows",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "System APIs",
+			"item": [
+				{
+					"name": "Flipkart System API",
+					"item": [
+						{
+							"name": "Get All Flipkart Orders",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8081/api/v1/orders?limit=10&offset=0",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8081",
+									"path": [
+										"api",
+										"v1",
+										"orders"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "10"
+										},
+										{
+											"key": "offset",
+											"value": "0"
+										},
+										{
+											"key": "status",
+											"value": "CONFIRMED",
+											"disabled": true
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Get Specific Flipkart Order",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8081/api/v1/orders/FK123456789",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8081",
+									"path": [
+										"api",
+										"v1",
+										"orders",
+										"FK123456789"
+									]
+								}
+							}
+						},
+						{
+							"name": "Flipkart Health Check",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8081/api/v1/health",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8081",
+									"path": [
+										"api",
+										"v1",
+										"health"
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Amazon System API",
+					"item": [
+						{
+							"name": "Get All Amazon Orders",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8082/api/v1/orders?pageSize=10&pageNumber=1",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8082",
+									"path": [
+										"api",
+										"v1",
+										"orders"
+									],
+									"query": [
+										{
+											"key": "pageSize",
+											"value": "10"
+										},
+										{
+											"key": "pageNumber",
+											"value": "1"
+										},
+										{
+											"key": "orderStatus",
+											"value": "PROCESSING",
+											"disabled": true
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Get Specific Amazon Order",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8082/api/v1/orders/AMZ987654321",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8082",
+									"path": [
+										"api",
+										"v1",
+										"orders",
+										"AMZ987654321"
+									]
+								}
+							}
+						},
+						{
+							"name": "Amazon Health Check",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8082/api/v1/health",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8082",
+									"path": [
+										"api",
+										"v1",
+										"health"
+									]
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Process API",
+			"item": [
+				{
+					"name": "Process Flipkart to IBM Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"source\": \"FLIPKART\",\n  \"target\": \"IBM\",\n  \"orderId\": \"FK123456789\",\n  \"orderData\": {\n    \"orderId\": \"FK123456789\",\n    \"customerInfo\": {\n      \"customerId\": \"CUST001\",\n      \"customerName\": \"John Doe\",\n      \"email\": \"john.doe@email.com\",\n      \"phone\": \"+91-9876543210\"\n    },\n    \"orderDetails\": {\n      \"orderDate\": \"2024-01-15T10:30:00Z\",\n      \"totalAmount\": 45000.00,\n      \"currency\": \"INR\",\n      \"status\": \"CONFIRMED\"\n    },\n    \"items\": [\n      {\n        \"itemId\": \"ITEM001\",\n        \"productName\": \"Laptop Dell Inspiron\",\n        \"quantity\": 1,\n        \"unitPrice\": 45000.00,\n        \"category\": \"Electronics\"\n      }\n    ],\n    \"shippingAddress\": {\n      \"addressLine1\": \"123 Main Street\",\n      \"addressLine2\": \"Apartment 4B\",\n      \"city\": \"Bangalore\",\n      \"state\": \"Karnataka\",\n      \"postalCode\": \"560001\",\n      \"country\": \"India\"\n    }\n  }\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8083/api/v1/process",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8083",
+							"path": [
+								"api",
+								"v1",
+								"process"
+							]
+						}
+					}
+				},
+				{
+					"name": "Process Amazon to HP Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"source\": \"AMAZON\",\n  \"target\": \"HP\",\n  \"orderId\": \"AMZ987654321\",\n  \"orderData\": {\n    \"orderNumber\": \"AMZ987654321\",\n    \"buyerInfo\": {\n      \"buyerId\": \"BUYER001\",\n      \"fullName\": \"Jane Smith\",\n      \"emailAddress\": \"jane.smith@email.com\",\n      \"phoneNumber\": \"+1-555-123-4567\"\n    },\n    \"purchaseInfo\": {\n      \"purchaseDate\": \"2024-01-15T14:45:00Z\",\n      \"grandTotal\": 899.98,\n      \"currencyCode\": \"USD\",\n      \"orderStatus\": \"PROCESSING\"\n    },\n    \"productList\": [\n      {\n        \"productId\": \"PROD001\",\n        \"title\": \"HP Laptop ProBook 450\",\n        \"qty\": 2,\n        \"price\": 449.99,\n        \"productCategory\": \"Computers\"\n      }\n    ],\n    \"deliveryAddress\": {\n      \"street\": \"456 Oak Avenue\",\n      \"apartment\": \"Suite 200\",\n      \"cityName\": \"Seattle\",\n      \"stateCode\": \"WA\",\n      \"zipCode\": \"98101\",\n      \"countryCode\": \"US\"\n    }\n  }\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8083/api/v1/process",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8083",
+							"path": [
+								"api",
+								"v1",
+								"process"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Transaction Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8083/api/v1/process/{{transactionId}}",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8083",
+							"path": [
+								"api",
+								"v1",
+								"process",
+								"{{transactionId}}"
+							]
+						}
+					}
+				},
+				{
+					"name": "Process API Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8083/api/v1/health",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8083",
+							"path": [
+								"api",
+								"v1",
+								"health"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Experience API (Flipkart to IBM Only)",
+			"item": [
+				{
+					"name": "Submit Single Flipkart Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"orderId\": \"FK123456789\",\n  \"processImmediate\": true,\n  \"notificationEmail\": \"admin@company.com\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8084/api/v1/orders",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8084",
+							"path": [
+								"api",
+								"v1",
+								"orders"
+							]
+						}
+					}
+				},
+				{
+					"name": "Submit Bulk Flipkart Orders",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"orderIds\": [\"FK123456789\", \"FK123456790\", \"FK123456791\"],\n  \"batchName\": \"Daily_Batch_20240115\",\n  \"notificationEmail\": \"admin@company.com\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8084/api/v1/orders/bulk",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8084",
+							"path": [
+								"api",
+								"v1",
+								"orders",
+								"bulk"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Order Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8084/api/v1/status/{{requestId}}",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8084",
+							"path": [
+								"api",
+								"v1",
+								"status",
+								"{{requestId}}"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Batch Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8084/api/v1/status/batch/{{batchId}}",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8084",
+							"path": [
+								"api",
+								"v1",
+								"status",
+								"batch",
+								"{{batchId}}"
+							]
+						}
+					}
+				},
+				{
+					"name": "Experience API Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8084/api/v1/health",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8084",
+							"path": [
+								"api",
+								"v1",
+								"health"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "End-to-End Integration Tests",
+			"item": [
+				{
+					"name": "E2E: Flipkart to IBM (3-Layer)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response contains requestId\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('requestId');",
+									"    pm.globals.set('requestId', jsonData.requestId);",
+									"});",
+									"",
+									"pm.test(\"Status is ACCEPTED\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql('ACCEPTED');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"orderId\": \"FK123456789\",\n  \"processImmediate\": true,\n  \"notificationEmail\": \"test@company.com\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8084/api/v1/orders",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8084",
+							"path": [
+								"api",
+								"v1",
+								"orders"
+							]
+						}
+					}
+				},
+				{
+					"name": "E2E: Amazon to HP (2-Layer)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response contains transactionId\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('transactionId');",
+									"    pm.globals.set('transactionId', jsonData.transactionId);",
+									"});",
+									"",
+									"pm.test(\"Status is SUCCESS\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql('SUCCESS');",
+									"});",
+									"",
+									"pm.test(\"Contains HP formatted order\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.transformedData).to.have.property('hp_reference_number');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"source\": \"AMAZON\",\n  \"target\": \"HP\",\n  \"orderId\": \"AMZ987654321\",\n  \"orderData\": {\n    \"orderNumber\": \"AMZ987654321\",\n    \"buyerInfo\": {\n      \"buyerId\": \"BUYER001\",\n      \"fullName\": \"Jane Smith\",\n      \"emailAddress\": \"jane.smith@email.com\",\n      \"phoneNumber\": \"+1-555-123-4567\"\n    },\n    \"purchaseInfo\": {\n      \"purchaseDate\": \"2024-01-15T14:45:00Z\",\n      \"grandTotal\": 899.98,\n      \"currencyCode\": \"USD\",\n      \"orderStatus\": \"PROCESSING\"\n    },\n    \"productList\": [\n      {\n        \"productId\": \"PROD001\",\n        \"title\": \"HP Laptop ProBook 450\",\n        \"qty\": 2,\n        \"price\": 449.99,\n        \"productCategory\": \"Computers\"\n      }\n    ],\n    \"deliveryAddress\": {\n      \"street\": \"456 Oak Avenue\",\n      \"apartment\": \"Suite 200\",\n      \"cityName\": \"Seattle\",\n      \"stateCode\": \"WA\",\n      \"zipCode\": \"98101\",\n      \"countryCode\": \"US\"\n    }\n  }\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8083/api/v1/process",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8083",
+							"path": [
+								"api",
+								"v1",
+								"process"
+							]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "requestId",
+			"value": ""
+		},
+		{
+			"key": "transactionId",
+			"value": ""
+		},
+		{
+			"key": "batchId",
+			"value": ""
+		}
+	]
+}

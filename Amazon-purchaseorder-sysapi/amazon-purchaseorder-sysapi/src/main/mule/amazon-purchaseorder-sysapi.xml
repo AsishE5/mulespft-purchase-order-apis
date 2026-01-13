@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+
+	<flow name="get:\orders:amazon-purchaseorder-sysapi-config" doc:id="a1b2c3d4-e5f6-7g8h-9i0j-k1l2m3n4o5p6">
+		<http:listener doc:name="GET /orders" doc:id="2a3b4c5d-6e7f-8g9h-0i1j-2k3l4m5n6o7p" config-ref="HTTP_Listener_config" path="/api/v1/orders" allowedMethods="GET"/>
+		<logger level="INFO" doc:name="Log Request" doc:id="3b4c5d6e-7f8g-9h0i-1j2k-3l4m5n6o7p8q" message="Fetching Amazon orders with query params: pageSize=#[attributes.queryParams.pageSize default 10], pageNumber=#[attributes.queryParams.pageNumber default 1], orderStatus=#[attributes.queryParams.orderStatus default '']"/>
+		<ee:transform doc:name="Mock Amazon Orders Response" doc:id="4c5d6e7f-8g9h-0i1j-2k3l-4m5n6o7p8q9r">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+[
+  {
+    "orderNumber": "AMZ987654321",
+    "buyerInfo": {
+      "buyerId": "BUYER001",
+      "fullName": "Jane Smith",
+      "emailAddress": "jane.smith@email.com",
+      "phoneNumber": "+1-555-123-4567"
+    },
+    "purchaseInfo": {
+      "purchaseDate": "2024-01-15T14:45:00Z",
+      "grandTotal": 899.98,
+      "currencyCode": "USD",
+      "orderStatus": "PROCESSING"
+    },
+    "productList": [
+      {
+        "productId": "PROD001",
+        "title": "HP Laptop ProBook 450",
+        "qty": 2,
+        "price": 449.99,
+        "productCategory": "Computers"
+      }
+    ],
+    "deliveryAddress": {
+      "street": "456 Oak Avenue",
+      "apartment": "Suite 200",
+      "cityName": "Seattle",
+      "stateCode": "WA",
+      "zipCode": "98101",
+      "countryCode": "US"
+    }
+  },
+  {
+    "orderNumber": "AMZ123456789",
+    "buyerInfo": {
+      "buyerId": "BUYER002",
+      "fullName": "Bob Johnson",
+      "emailAddress": "bob.johnson@email.com",
+      "phoneNumber": "+1-555-987-6543"
+    },
+    "purchaseInfo": {
+      "purchaseDate": "2024-01-16T09:30:00Z",
+      "grandTotal": 1299.99,
+      "currencyCode": "USD",
+      "orderStatus": "PLACED"
+    },
+    "productList": [
+      {
+        "productId": "PROD002",
+        "title": "Dell Desktop Computer",
+        "qty": 1,
+        "price": 1299.99,
+        "productCategory": "Computers"
+      }
+    ],
+    "deliveryAddress": {
+      "street": "789 Pine Street",
+      "cityName": "Portland",
+      "stateCode": "OR",
+      "zipCode": "97201",
+      "countryCode": "US"
+    }
+  }
+]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<error-handler>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="5d6e7f8g-9h0i-1j2k-3l4m-5n6o7p8q9r0s" type="ANY">
+				<logger level="ERROR" doc:name="Error Logger" doc:id="6e7f8g9h-0i1j-2k3l-4m5n-6o7p8q9r0s1t" message="Error occurred in GET /orders: #[error.description]"/>
+				<ee:transform doc:name="Error Response" doc:id="7f8g9h0i-1j2k-3l4m-5n6o-7p8q9r0s1t2u">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "errorCode": "AMZ_001",
+  "errorMessage": error.description,
+  "timestamp": now()
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus">500</ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+
+	<flow name="get:\orders\(orderNumber):amazon-purchaseorder-sysapi-config" doc:id="8g9h0i1j-2k3l-4m5n-6o7p-8q9r0s1t2u3v">
+		<http:listener doc:name="GET /orders/{orderNumber}" doc:id="9h0i1j2k-3l4m-5n6o-7p8q-9r0s1t2u3v4w" config-ref="HTTP_Listener_config" path="/api/v1/orders/{orderNumber}" allowedMethods="GET"/>
+		<logger level="INFO" doc:name="Log Request" doc:id="0i1j2k3l-4m5n-6o7p-8q9r-0s1t2u3v4w5x" message="Fetching Amazon order with number: #[attributes.uriParams.orderNumber]"/>
+		<choice doc:name="Choice" doc:id="1j2k3l4m-5n6o-7p8q-9r0s-1t2u3v4w5x6y">
+			<when expression="#[attributes.uriParams.orderNumber == 'AMZ987654321']">
+				<ee:transform doc:name="Mock Order AMZ987654321" doc:id="2k3l4m5n-6o7p-8q9r-0s1t-2u3v4w5x6y7z">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "orderNumber": "AMZ987654321",
+  "buyerInfo": {
+    "buyerId": "BUYER001",
+    "fullName": "Jane Smith",
+    "emailAddress": "jane.smith@email.com",
+    "phoneNumber": "+1-555-123-4567"
+  },
+  "purchaseInfo": {
+    "purchaseDate": "2024-01-15T14:45:00Z",
+    "grandTotal": 899.98,
+    "currencyCode": "USD",
+    "orderStatus": "PROCESSING"
+  },
+  "productList": [
+    {
+      "productId": "PROD001",
+      "title": "HP Laptop ProBook 450",
+      "qty": 2,
+      "price": 449.99,
+      "productCategory": "Computers"
+    }
+  ],
+  "deliveryAddress": {
+    "street": "456 Oak Avenue",
+    "apartment": "Suite 200",
+    "cityName": "Seattle",
+    "stateCode": "WA",
+    "zipCode": "98101",
+    "countryCode": "US"
+  }
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise>
+				<ee:transform doc:name="Order Not Found" doc:id="3l4m5n6o-7p8q-9r0s-1t2u-3v4w5x6y7z8a">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "errorCode": "AMZ_002",
+  "errorMessage": "Order not found with number: " ++ attributes.uriParams.orderNumber,
+  "timestamp": now()
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus">404</ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<error-handler>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="4m5n6o7p-8q9r-0s1t-2u3v-4w5x6y7z8a9b" type="ANY">
+				<logger level="ERROR" doc:name="Error Logger" doc:id="5n6o7p8q-9r0s-1t2u-3v4w-5x6y7z8a9b0c" message="Error occurred in GET /orders/{orderNumber}: #[error.description]"/>
+				<ee:transform doc:name="Error Response" doc:id="6o7p8q9r-0s1t-2u3v-4w5x-6y7z8a9b0c1d">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "errorCode": "AMZ_001",
+  "errorMessage": error.description,
+  "timestamp": now()
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus">500</ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+
+	<flow name="get:\health:amazon-purchaseorder-sysapi-config" doc:id="7p8q9r0s-1t2u-3v4w-5x6y-7z8a9b0c1d2e">
+		<http:listener doc:name="GET /health" doc:id="8q9r0s1t-2u3v-4w5x-6y7z-8a9b0c1d2e3f" config-ref="HTTP_Listener_config" path="/api/v1/health" allowedMethods="GET"/>
+		<logger level="INFO" doc:name="Log Health Check" doc:id="9r0s1t2u-3v4w-5x6y-7z8a-9b0c1d2e3f4g" message="Health check endpoint called"/>
+		<ee:transform doc:name="Health Response" doc:id="0s1t2u3v-4w5x-6y7z-8a9b-0c1d2e3f4g5h">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "status": "UP",
+  "timestamp": now(),
+  "service": "Amazon Purchase Order System API",
+  "version": "1.0.0"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<error-handler>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="1t2u3v4w-5x6y-7z8a-9b0c-1d2e3f4g5h6i" type="ANY">
+				<logger level="ERROR" doc:name="Error Logger" doc:id="2u3v4w5x-6y7z-8a9b-0c1d-2e3f4g5h6i7j" message="Error occurred in GET /health: #[error.description]"/>
+				<ee:transform doc:name="Error Response" doc:id="3v4w5x6y-7z8a-9b0c-1d2e-3f4g5h6i7j8k">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "status": "DOWN",
+  "errorCode": "AMZ_001",
+  "errorMessage": error.description,
+  "timestamp": now()
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus">500</ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+
+</mule>
